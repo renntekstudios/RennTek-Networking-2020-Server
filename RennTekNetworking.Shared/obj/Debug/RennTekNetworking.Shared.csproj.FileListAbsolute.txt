@@ -1,0 +1,12 @@
+C:\Users\user\Desktop\RennTek Networking\RennTekNetworking.Shared\bin\Debug\RennTekNetworking.Shared.dll
+C:\Users\user\Desktop\RennTek Networking\RennTekNetworking.Shared\bin\Debug\RennTekNetworking.Shared.pdb
+C:\Users\user\Desktop\RennTek Networking\RennTekNetworking.Shared\obj\Debug\RennTekNetworking.Shared.csprojAssemblyReference.cache
+C:\Users\user\Desktop\RennTek Networking\RennTekNetworking.Shared\obj\Debug\RennTekNetworking.Shared.csproj.CoreCompileInputs.cache
+C:\Users\user\Desktop\RennTek Networking\RennTekNetworking.Shared\obj\Debug\RennTekNetworking.Shared.dll
+C:\Users\user\Desktop\RennTek Networking\RennTekNetworking.Shared\obj\Debug\RennTekNetworking.Shared.pdb
+C:\Users\user\Desktop\RennTekNetworking2020\RennTekNetworking.Shared\bin\Debug\RennTekNetworking.Shared.dll
+C:\Users\user\Desktop\RennTekNetworking2020\RennTekNetworking.Shared\bin\Debug\RennTekNetworking.Shared.pdb
+C:\Users\user\Desktop\RennTekNetworking2020\RennTekNetworking.Shared\obj\Debug\RennTekNetworking.Shared.csprojAssemblyReference.cache
+C:\Users\user\Desktop\RennTekNetworking2020\RennTekNetworking.Shared\obj\Debug\RennTekNetworking.Shared.csproj.CoreCompileInputs.cache
+C:\Users\user\Desktop\RennTekNetworking2020\RennTekNetworking.Shared\obj\Debug\RennTekNetworking.Shared.dll
+C:\Users\user\Desktop\RennTekNetworking2020\RennTekNetworking.Shared\obj\Debug\RennTekNetworking.Shared.pdb
