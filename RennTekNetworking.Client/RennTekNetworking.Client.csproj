@@ -71,11 +71,4 @@
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <PropertyGroup>
-    <PostBuildEvent>XCOPY /E /Y /R "$(TargetPath)" "C:\Users\user\Desktop\RennTekNetworking2020\Public\RennTekNetworking Unity Client\Assets\Plugins\"
-
-XCOPY /E /Y /R "$(TargetDir)RennTekNetworking.Shared.dll" "C:\Users\user\Desktop\RennTekNetworking2020\Public\RennTekNetworking Unity Client\Assets\Plugins\"
-
-</PostBuildEvent>
-  </PropertyGroup>
 </Project>
