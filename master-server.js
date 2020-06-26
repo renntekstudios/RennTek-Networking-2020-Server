@@ -1,80 +1,133 @@
 const net = require('net');
 const os = require('os');
 const version = "0.1";
+const isLE = os.endianness() === 'LE';
+const isVerbose = process.argv.includes('--verbose');
 
 function startServer() {
-	var connectionId;
-	var isLE = os.endianness() === 'LE';
-	var host = process.argv.length > 2 && process.argv.pop();
-	var port = 4435;
-	var socket = net.createConnection(host || { port }, onConnect);
+	var port = Number.parseInt(getCliArg('port', 4000));
+	var hosts = getCliArg('hosts', '');
+	var masterServer = net.createServer();
+	var servers = hosts.split(',').map(connectServer);
 	
+	masterServer.listen(port, () => console.log(`master server is listening to port ${port}`));
+	masterServer.on('connection', function onConnect(socket) {
+		logSocket(socket, `Sending client servers list`);
+		socket.write(jsonServerList(servers) + '\n');
+		socket.on('data', () => {
+			socket.write(jsonServerList(servers) + '\n');
+		})
+		socket.pipe(socket);
+	});
+	masterServer.on('error', function onError(err) {
+		servers.forEach(server => server.end());
+		console.log(`Master server on port ${port} failed to ${err.message}`);
+	});
+	console.log(`connecting to ${servers.length || 1} server${hosts.length > 1 && 's' || ''}...`);
+}
+
+function getCliArg(arg, def) {
+	var idx = process.argv.indexOf(`--${arg}`);
+	var arg = process.argv[idx + 1];
+	if (idx === -1 || !arg || arg.startsWith('-')) {
+		return def;
+	}
+	return arg;
+}
+
+function connectServer(host) {
+	let lastPing = new Date();
+	let socket;
+	
+	if (typeof host === 'string' && host.length > 0) {
+		host = host.trim();
+	} else {
+		host = { port: 4435 };
+	}
+
+	socket = net.createConnection(host, () => onConnect(socket));
+
+	socket.on('error', function onError(err) {
+		console.log('Failed to ' + err.message);
+	})
 	socket.on('data', function onData(data) {
 		var view = new DataView(data.buffer);
 		var actionNumber = view.getInt32(4, isLE);
 		var action = convertServerCode(actionNumber);
-		
+		socket.ping = Date.now() - lastPing.getTime();
 		socket.emit(action, view, socket);
 	});
-	socket.on('end', onDisconnect);
+	socket.on('end', () => onDisconnect(socket));
 	socket.on('Authentication', onAuth);
 	socket.on('UpdateEntity', onUpdateEntity)
+	return socket;
 }
 
 function onAuth(view, socket) {
-	console.log(`action -> authentication`);
-	connectionId = view.getInt32(8, isLE);
-	
-	var actionBuff = Int32Array.from([convertAction('Authentication')]);
-	var versionBuff = Buffer.from(version, "ascii");
-	var packageLen = actionBuff.byteLength + versionBuff.byteLength;
-	var final = new Uint8Array(4 + packageLen);
+	let actionBuff = Int32Array.from([convertAction('Authentication')]);
+	let versionBuff = Buffer.from(version, "ascii");
+	let packageLen = actionBuff.byteLength + versionBuff.byteLength;
+	let final = new Uint8Array(4 + packageLen);
 
 	final.set(Int32Array.from([packageLen]), 0);
 	final.set(actionBuff, 4);
 	final.set(versionBuff, 8);
 	socket.write(final);
+
+	if (isVerbose) {
+		logSocket(socket, `action -> authentication`);
+	}
 }
 
-function onUpdateEntity(view) {
-	console.log('action -> update entity');
-	
-	var enc = new TextDecoder("ascii", { fatal: true });
-	var strBuffer = new DataView(view.buffer, 12);
-	var guid = enc.decode(strBuffer, { stream: true });
+function onUpdateEntity(view, socket) {	
+	let enc = new TextDecoder("ascii", { fatal: true });
+	let strBuffer = new DataView(view.buffer, 12);
+	let guid = enc.decode(strBuffer, { stream: true });
 	guid = guid.substr(0, guid.indexOf('\x00'));
-	var bytePos = 8 + guid.length;
+	let bytePos = 8 + guid.length;
 
-	var posX = view.getFloat32(bytePos + 4, isLE);
-	var posY = view.getFloat32(bytePos + 8, isLE);
-	var posZ = view.getFloat32(bytePos + 12, isLE);
-	var rotX = view.getFloat32(bytePos + 16, isLE);
-	var rotY = view.getFloat32(bytePos + 20, isLE);
-	var rotZ = view.getFloat32(bytePos + 24, isLE);
-	var rotW = view.getFloat32(bytePos + 28, isLE);
+	let posX = view.getFloat32(bytePos + 4, isLE);
+	let posY = view.getFloat32(bytePos + 8, isLE);
+	let posZ = view.getFloat32(bytePos + 12, isLE);
+	let rotX = view.getFloat32(bytePos + 16, isLE);
+	let rotY = view.getFloat32(bytePos + 20, isLE);
+	let rotZ = view.getFloat32(bytePos + 24, isLE);
+	let rotW = view.getFloat32(bytePos + 28, isLE);
 	
-	console.log("guid", guid);
-	console.log(`pos (x,y,z) -> (${posX}, ${posY}, ${posZ})`);
-	console.log(`rot (x,y,z,w) -> (${rotX}, ${rotY}, ${rotZ}, ${rotW})`);
+	if (isVerbose) {
+		logSocket(socket, 'action -> update entity');
+		logSocket(socket, "guid", guid);
+		logSocket(socket, `pos (x,y,z) -> (${posX}, ${posY}, ${posZ})`);
+		logSocket(socket, `rot (x,y,z,w) -> (${rotX}, ${rotY}, ${rotZ}, ${rotW})`);
+	}
 }
 
-function onServerData(view) {
-	console.log('action -> request server data');
-	console.log(view);
+function jsonServerList(servers) {
+	return JSON.stringify(servers.map(function mapServer(server) {
+		return {
+			host: server.remoteAddress,
+			port: server.remotePort,
+		};
+	}))
 }
 
-function onConnect() {
-	console.log(`connected to server at ${host || port}`);
+function onConnect(socket) {
+	logSocket(socket, `connected to server`);
 }
 
-function onDisconnect() {
-	console.log('disconnected from server');
+function onDisconnect(socket) {
+	logSocket(socket, 'disconnected from server');
 }
 
 function showUsage() {
 	console.log("Usage: master-server.js <hosts>");
 	console.log("Args:");
 	console.log("	hosts - the a comma separated list of hosts (e.g. 'domain1:1234,domain2:12775')")
+}
+
+function logSocket(socket, ...msg) {
+	process.stdout.write(`[${socket.remoteAddress}:${socket.remotePort}] `);
+	console.log(msg.join(' '))
 }
 
 function convertAction(action) {
@@ -104,7 +157,12 @@ function convertServerCode(number) {
     if (number === 10) return 'SendAuthenticationConfirmed'
     if (number === 11) return 'UpdateEntity'
 }
-if (process.argv.includes('--help')) {
-	showUsage();
+
+function start() {
+	if (process.argv.includes('--help')) {
+		showUsage();
+	} else {
+		startServer();
+	}
 }
-startServer();
+start();
