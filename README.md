@@ -17,3 +17,16 @@ Author
 + [Github](https://github.com/renntekstudios)
 
 ![Console Sample](Screenshots/console_sample.PNG)
+
+## Master server
+
+### Requirements
+
+- NodeJS v13 or newer
+
+A master server can track a number of servers and check if they are available.
+Simply run `node master-server --help` from the project to see the usage.
+
+When a client connects, the master responds with a JSON list of objects as { host: 'server1', port: 'server1port' }
+
+
