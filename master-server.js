@@ -7,7 +7,7 @@ const pingTimeout = 15000;
 
 function startServer() {
 	var port = Number.parseInt(getCliArg('port', 4000));
-	var hosts = getCliArg('hosts', '');
+	var hosts = getCliArg('host', '');
 	var masterServer = net.createServer();
 	var servers = hosts.split(',').map(connectServer);
 	
@@ -132,9 +132,10 @@ function onDisconnect(socket) {
 }
 
 function showUsage() {
-	console.log("Usage: master-server.js <hosts>");
+	console.log("Usage: master-server.js [--hosts <hosts>] --port <port>");
 	console.log("Args:");
-	console.log("	hosts - the a comma separated list of hosts (e.g. 'domain1:1234,domain2:12775')")
+	console.log("	host[s] - the a comma separated list of servers (e.g. 'server1:1234,server2:12775')")
+	console.log(" 	port - the port this master server should listen on");
 }
 
 function logSocket(socket, ...msg) {
