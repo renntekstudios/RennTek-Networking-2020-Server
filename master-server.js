@@ -3,6 +3,7 @@ const os = require('os');
 const version = "0.1";
 const isLE = os.endianness() === 'LE';
 const isVerbose = process.argv.includes('--verbose');
+const pingTimeout = 15000;
 
 function startServer() {
 	var port = Number.parseInt(getCliArg('port', 4000));
@@ -36,7 +37,7 @@ function getCliArg(arg, def) {
 }
 
 function connectServer(host) {
-	let lastPing = new Date();
+	let lastPingMs = Date.now();
 	let socket;
 	
 	if (typeof host === 'string' && host.length > 0) {
@@ -54,13 +55,23 @@ function connectServer(host) {
 		var view = new DataView(data.buffer);
 		var actionNumber = view.getInt32(4, isLE);
 		var action = convertServerCode(actionNumber);
-		socket.ping = Date.now() - lastPing.getTime();
+		socket.ping = Date.now() - lastPingMs;
+		socket.bytes = data.length + (socket.bytes || 0);
+		lastPingMs = Date.now();
 		socket.emit(action, view, socket);
 	});
 	socket.on('end', () => onDisconnect(socket));
 	socket.on('Authentication', onAuth);
 	socket.on('UpdateEntity', onUpdateEntity)
+
 	return socket;
+}
+
+function checkStatsInterval(socket) {
+	if (socket.ping) {
+		logSocket(socket, `Current ping ${socket.ping}ms, incoming data ${socket.bytes} bytes`);
+	}
+	setTimeout(() => checkStatsInterval(socket), pingTimeout);
 }
 
 function onAuth(view, socket) {
@@ -112,6 +123,7 @@ function jsonServerList(servers) {
 }
 
 function onConnect(socket) {
+	checkStatsInterval(socket);
 	logSocket(socket, `connected to server`);
 }
 
